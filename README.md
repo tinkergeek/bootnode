@@ -1,0 +1,2 @@
+# bootnode
+Simple netboot infrastructure
