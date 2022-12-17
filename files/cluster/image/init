@@ -1,5 +1,9 @@
 #!/busybox sh
 
+#
+# This script is inspired directly by http://www.espenbraastad.no/posts/centos-7-rootfs-on-tmpfs/
+#
+
 /busybox mkdir /bin
 /busybox --install /bin
 

@@ -42,9 +42,9 @@ qemu-system-x86_64 -accel kvm \
 Making the compute image happens in three steps:
 
 1. `dnf` puts a minimal Rocky 8 operating system into /cluster/root_fs
-  One modification is made to disable selinux but you can make other customizations here
+  Make customizations to the image here
 2. Then we create a tarball of the image
-  If the first script works properly then XZ is used to make the image as small as possible
+  If the first script works properly then `xz` is used to make the image as small as possible
 3. We pack up our init script, busybox binary, and tarball into our ramdisk image
   This step is separate so that init ram files can be changed independently of the OS image
 
@@ -61,5 +61,5 @@ Making the compute image happens in three steps:
 8. Init will uncompress the root image into the tmpfs
 9. Finally Init launches the image's own init system
 10. Systemd will start and the node boots as normal... out of RAM
-  If the kernel file at /tftpboot/vmlinuz matches the kernel modules found in the image (ie the node booted with the correct kernel) then systemd will happily piece together the system even though the initial ramdisk environment loaded squat in terms of hardware drivers
+  If the kernel file at /tftpboot/vmlinuz matche the kernel modules found in the image (the node booted with the correct kernel) then systemd will happily piece together the system even though the initial ramdisk environment loaded squat in terms of hardware drivers
 
