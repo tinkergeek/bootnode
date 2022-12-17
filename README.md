@@ -46,9 +46,11 @@ Making the compute image happens in three steps:
 1. `dnf` puts a minimal Rocky 8 operating system into /cluster/root_fs
 
   Make customizations to the image here
+
 2. Then we create a tarball of the image
 
   If the first script works properly then `xz` is used to make the image as small as possible
+
 3. We pack up our init script, busybox binary, and tarball into our ramdisk image
 
   This step is separate so that init ram files can be changed independently of the OS image
@@ -61,6 +63,7 @@ Making the compute image happens in three steps:
 4. iPXE will DHCP *again* which will get a boot script (written in iPXE's scripting language)
 
   Note that if your hardware uses iPXE as its built-in loader (like Mellanox's host adapters or a qemu VM) then you might start the process here
+
 5. iPXE will use HTTP to download the Linux kernel and ramdisk image to boot
 6. Linux will boot using our init script
 7. Init will execute by busybox's interpreter to set up a tmpfs file system
