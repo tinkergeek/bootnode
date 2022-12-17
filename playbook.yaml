@@ -1,0 +1,163 @@
+---
+- name: "bootnode"
+  hosts: localhost
+  connection: local
+  tasks:
+    - name: Install Package
+      yum: name={{ item }} state=present
+      with_items:
+        - epel-release
+        - ansible
+        - bc
+        - bind
+        - bind-utils
+        - clustershell
+        - createrepo
+        - dhcp-server
+        - dstat
+        - ethtool
+        - htop
+        - lsof
+        - nfs-utils
+        - nginx
+        - pdsh
+        - pdsh-rcmd-ssh
+        - psmisc
+        - rsync
+        - rsyslog
+        - sudo
+        - tcpdump
+        - tftp
+        - tftp-server
+        - traceroute
+        - vim
+        - wget
+        - yum-utils
+
+    - name: Create /cluster Directory
+      file: path=/cluster state=directory
+
+    - name: Create /cluster/image Directory
+      file: path=/cluster/image state=directory
+
+    - name: Create /cluster/busybox Directory
+      file: path=/cluster/busybox state=directory
+
+    - name: Copy /cluster/image/init Script
+      copy: src=files/cluster/image/init dest=/cluster/image/init mode=555
+
+    - name: Copy /cluster/busybox/init Script
+      copy: src=files/cluster/busybox/init dest=/cluster/busybox/init mode=555
+
+    - name: Copy /cluster/build.sh Script
+      copy: src=files/cluster/build.sh dest=/cluster/build.sh mode=555
+
+    - name: Copy /cluster/pack.sh Script
+      copy: src=files/cluster/pack.sh dest=/cluster/pack.sh mode=555
+
+    - name: Copy /cluster/genroot.sh Script
+      copy: src=files/cluster/genroot.sh dest=/cluster/genroot.sh mode=555
+
+    - name: Copy /cluster/busybox.sh Script
+      copy: src=files/cluster/busybox.sh dest=/cluster/busybox.sh mode=555
+
+    - name: Download Busybox
+      command: /usr/bin/wget -O /cluster/image/busybox http://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox creates=/cluster/image/busybox
+
+    - name: Set busybox Permissions
+      file: path=/cluster/image/busybox mode=555
+
+    - name: Copy busybox to 2nd image
+      copy: src=/cluster/image/busybox dest=/cluster/busybox/busybox
+
+    - name: Set busybox Permissions
+      file: path=/cluster/busybox/busybox mode=555
+
+    - name: Copy dhcpd.conf
+      copy: src=files/etc/dhcp/dhcpd.conf dest=/etc/dhcp/dhcpd.conf
+      notify: restart_dhcpd
+
+    - name: Configure dhcpd
+      service: name=dhcpd enabled=yes state=started
+
+    - name: Copy named.conf
+      copy: src=files/etc/named.conf dest=/etc/named.conf
+      notify: restart_named
+
+    - name: Copy named.conf.local
+      copy: src=files/etc/named/named.conf.local dest=/etc/named/named.conf.local
+      notify: restart_named
+
+    - name: Copy cluster domain zone file
+      copy: src=files/etc/named/cluster.zone dest=/etc/named/cluster.zone
+      notify: restart_named
+
+    - name: Copy 0.168.192.in-addr reverse DNS zone file
+      copy: src=files/etc/named/0.168.192.in-addr.arpa.zone dest=/etc/named/0.168.192.in-addr.arpa.zone
+      notify: restart_named
+
+    - name: Configure named
+      service: name=named enabled=yes state=started
+
+    - name: Copy tftp-server.service
+      copy: src=files/etc/systemd/system/tftp-server.service dest=/etc/systemd/system/tftp-server.service
+
+    - name: Create /tftpboot Directory
+      file: path=/tftpboot state=directory
+
+    - name: Download iPXE EFI binary
+      command: /usr/bin/wget -O /tftpboot/ipxe.efi https://boot.ipxe.org/ipxe.efi creates=/tftpboot/ipxe.efi
+
+    - name: Download iPXE Bios binary
+      command: /usr/bin/wget -O /tftpboot/undionly.kpxe https://boot.ipxe.org/undionly.kpxe creates=/tftpboot/undionly.kpxe
+
+    - name: Copy iPXE boot.script
+      copy: src=files/tftpboot/boot.script dest=/tftpboot/boot.script
+
+    - name: Copy iPXE busybox.script
+      copy: src=files/tftpboot/busybox.script dest=/tftpboot/busybox.script
+
+    - name: Copy vmlinuz-4.18.0-415.3.1.el8.x86_64 to /tftpboot
+      copy: src=/boot/vmlinuz-4.18.0-425.3.1.el8.x86_64 dest=/tftpboot/vmlinuz
+
+    - name: Copy nginx.conf
+      copy: src=files/etc/nginx/nginx.conf dest=/etc/nginx/nginx.conf
+      notify: restart_http
+
+    - name: Configure nginx
+      service: name=nginx enabled=yes state=started
+
+    - name: Create busybox image - /cluster/busybox.sh
+      command: /cluster/busybox.sh
+      args:
+        creates: /tftpboot/busybox.gz
+        chdir: /cluster
+
+    - name: Generate node image - /cluster/genroot.sh
+      command: /cluster/genroot.sh
+      args:
+        creates: /cluster/root_fs/etc/passwd
+        chdir: /cluster
+
+    - name: Build image tarball - /cluster/build.sh
+      command: /cluster/build.sh
+      args:
+        creates: /cluster/image/image.tar.xz
+        chdir: /cluster
+
+    - name: Pack boot image - /cluster/pack.sh
+      command: /cluster/pack.sh
+      args:
+        creates: /tftpboot/initramfs.gz
+        chdir: /cluster
+
+  handlers:
+    - name: restart_dhcpd
+      service: name=dhcpd state=restarted
+
+    - name: restart_named
+      service: name=named state=restarted
+
+    - name: restart_http
+      service: name=nginx state=restarted
+

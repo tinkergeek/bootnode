@@ -1,0 +1,8 @@
+[Unit]
+Description=tftpd
+
+[Service]
+ExecStart=/usr/sbin/in.tftpd -4 -L -p -s /tftpboot
+
+[Install]
+WantedBy=multi-user.target

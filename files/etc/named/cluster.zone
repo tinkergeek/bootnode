@@ -1,0 +1,16 @@
+@ IN SOA cluster. admin.cluster. (
+	2022121501
+	604800
+	86400
+	2419200
+	300 )
+
+$ORIGIN cluster.
+
+		IN 	NS	bootnode.cluster.
+bootnode	IN	A	192.168.0.1
+
+node-000	IN	A	192.168.0.100
+node-001	IN	A	192.168.0.101
+node-002	IN	A	192.168.0.102
+node-003	IN	A	192.168.0.103

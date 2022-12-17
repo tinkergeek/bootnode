@@ -1,0 +1,17 @@
+@ IN SOA cluster. admin.cluster. (
+	2022121501
+	604800
+	86400
+	2419200
+	300 )
+
+$ORIGIN 0.168.192.in-addr.arpa.
+
+	IN 	NS	bootnode.cluster.
+1	IN	PTR	bootnode.cluster.
+
+100	IN	PTR	node-000.cluster.
+101	IN	PTR	node-001.cluster.
+102	IN	PTR	node-002.cluster.
+103	IN	PTR	node-003.cluster.
+

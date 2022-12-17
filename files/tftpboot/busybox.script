@@ -1,0 +1,4 @@
+#!ipxe
+kernel http://192.168.0.1/vmlinuz selinux=0
+initrd http://192.168.0.1/busybox.gz
+boot

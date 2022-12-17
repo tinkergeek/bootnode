@@ -1,0 +1,9 @@
+zone "cluster" {
+	type master;
+	file "/etc/named/cluster.zone";
+}
+
+zone "0.168.192.in-addr.arpa" {
+	type master;
+	file "/etc/named/0.168.192.in-addr.arpa";
+}
