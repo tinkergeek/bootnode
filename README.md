@@ -3,6 +3,8 @@
 ## Introduction
 Quickly network boot a bunch of computers.
 
+![Diagram with boot node and two compute nodes](diagram.png)
+
 ## Getting up and going
 Run this Ansible playbook on a freshly installed Rocky 8 server. It needs to have two networks: public and private. Connect your compute nodes to the private network. This can be a home router and a dumb switch. Two switches or VLANs or whatever you want really.
 
@@ -65,11 +67,19 @@ Making the compute image happens in three steps:
   Note that if your hardware uses iPXE as its built-in loader (like Mellanox's host adapters or a qemu VM) then you might start the process here
 
 5. iPXE will use HTTP to download the Linux kernel and ramdisk image to boot
+
+  ![Screenshot of iPXE booting](screenshot-ipxe.png)
+
 6. Linux will boot using our init script
 7. Init will execute by busybox's interpreter to set up a tmpfs file system
 8. Init will uncompress the root image into the tmpfs
+
+   ![Screenshot of Linux uncompressing the image](screenshot-untar.png)
+
 9. Finally Init launches the image's own init system
 10. Systemd will start and the node boots as normal... out of RAM
 
   If the kernel file at /tftpboot/vmlinuz matche the kernel modules found in the image (the node booted with the correct kernel) then systemd will happily piece together the system even though the initial ramdisk environment loaded squat in terms of hardware drivers
+
+  ![Screenshot of one node booted at the login screen](screenshot-booted.png)
 
