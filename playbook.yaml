@@ -3,6 +3,11 @@
   hosts: localhost
   connection: local
   tasks:
+
+#
+# Core System Configuration
+#
+
     - name: Install Package
       yum: name={{ item }} state=present
       with_items:
@@ -34,44 +39,9 @@
         - wget
         - yum-utils
 
-    - name: Create /cluster Directory
-      file: path=/cluster state=directory
-
-    - name: Create /cluster/image Directory
-      file: path=/cluster/image state=directory
-
-    - name: Create /cluster/busybox Directory
-      file: path=/cluster/busybox state=directory
-
-    - name: Copy /cluster/image/init Script
-      copy: src=files/cluster/image/init dest=/cluster/image/init mode=555
-
-    - name: Copy /cluster/busybox/init Script
-      copy: src=files/cluster/busybox/init dest=/cluster/busybox/init mode=555
-
-    - name: Copy /cluster/build.sh Script
-      copy: src=files/cluster/build.sh dest=/cluster/build.sh mode=555
-
-    - name: Copy /cluster/pack.sh Script
-      copy: src=files/cluster/pack.sh dest=/cluster/pack.sh mode=555
-
-    - name: Copy /cluster/genroot.sh Script
-      copy: src=files/cluster/genroot.sh dest=/cluster/genroot.sh mode=555
-
-    - name: Copy /cluster/busybox.sh Script
-      copy: src=files/cluster/busybox.sh dest=/cluster/busybox.sh mode=555
-
-    - name: Download Busybox
-      command: /usr/bin/wget -O /cluster/image/busybox http://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox creates=/cluster/image/busybox
-
-    - name: Set busybox Permissions
-      file: path=/cluster/image/busybox mode=555
-
-    - name: Copy busybox to 2nd image
-      copy: src=/cluster/image/busybox dest=/cluster/busybox/busybox
-
-    - name: Set busybox Permissions
-      file: path=/cluster/busybox/busybox mode=555
+# 
+# Network Boot Configuration
+#
 
     - name: Copy dhcpd.conf
       copy: src=files/etc/dhcp/dhcpd.conf dest=/etc/dhcp/dhcpd.conf
@@ -105,21 +75,6 @@
     - name: Create /tftpboot Directory
       file: path=/tftpboot state=directory
 
-    - name: Download iPXE EFI binary
-      command: /usr/bin/wget -O /tftpboot/ipxe.efi https://boot.ipxe.org/ipxe.efi creates=/tftpboot/ipxe.efi
-
-    - name: Download iPXE Bios binary
-      command: /usr/bin/wget -O /tftpboot/undionly.kpxe https://boot.ipxe.org/undionly.kpxe creates=/tftpboot/undionly.kpxe
-
-    - name: Copy iPXE boot.script
-      copy: src=files/tftpboot/boot.script dest=/tftpboot/boot.script
-
-    - name: Copy iPXE busybox.script
-      copy: src=files/tftpboot/busybox.script dest=/tftpboot/busybox.script
-
-    - name: Copy vmlinuz-4.18.0-415.3.1.el8.x86_64 to /tftpboot
-      copy: src=/boot/vmlinuz-4.18.0-425.3.1.el8.x86_64 dest=/tftpboot/vmlinuz
-
     - name: Copy nginx.conf
       copy: src=files/etc/nginx/nginx.conf dest=/etc/nginx/nginx.conf
       notify: restart_http
@@ -127,11 +82,55 @@
     - name: Configure nginx
       service: name=nginx enabled=yes state=started
 
-    - name: Create busybox image - /cluster/busybox.sh
-      command: /cluster/busybox.sh
-      args:
-        creates: /tftpboot/busybox.gz
-        chdir: /cluster
+#
+# Core Image Infrastructure
+#
+
+    - name: Create /cluster Directory
+      file: path=/cluster state=directory
+
+    - name: Download Busybox
+      command: /usr/bin/wget -O /cluster/busybox.bin http://www.busybox.net/downloads/binaries/1.35.0-x86_64-linux-musl/busybox creates=/cluster/busybox.bin
+
+    - name: Set busybox Permissions
+      file: path=/cluster/busybox.bin mode=555
+
+    - name: Download iPXE EFI binary
+      command: /usr/bin/wget -O /tftpboot/ipxe.efi https://boot.ipxe.org/ipxe.efi creates=/tftpboot/ipxe.efi
+
+    - name: Download iPXE Bios binary
+      command: /usr/bin/wget -O /tftpboot/undionly.kpxe https://boot.ipxe.org/undionly.kpxe creates=/tftpboot/undionly.kpxe
+
+    - name: Copy vmlinuz-4.18.0-415.3.1.el8.x86_64 to /tftpboot
+      copy: src=/boot/vmlinuz-4.18.0-425.3.1.el8.x86_64 dest=/tftpboot/vmlinuz
+
+#
+# Rocky 8 Image
+#
+
+    - name: Create /cluster/image Directory
+      file: path=/cluster/image state=directory
+
+    - name: Copy /cluster/image/init Script
+      copy: src=files/cluster/image/init dest=/cluster/image/init mode=555
+
+    - name: Copy /cluster/build.sh Script
+      copy: src=files/cluster/build.sh dest=/cluster/build.sh mode=555
+
+    - name: Copy /cluster/pack.sh Script
+      copy: src=files/cluster/pack.sh dest=/cluster/pack.sh mode=555
+
+    - name: Copy /cluster/genroot.sh Script
+      copy: src=files/cluster/genroot.sh dest=/cluster/genroot.sh mode=555
+
+    - name: Copy busybox into image
+      copy: src=/cluster/busybox.bin dest=/cluster/image/busybox
+
+    - name: Set busybox Permissions
+      file: path=/cluster/image/busybox mode=555
+
+    - name: Copy iPXE boot.script
+      copy: src=files/tftpboot/boot.script dest=/tftpboot/boot.script
 
     - name: Generate node image - /cluster/genroot.sh
       command: /cluster/genroot.sh
@@ -149,6 +148,34 @@
       command: /cluster/pack.sh
       args:
         creates: /tftpboot/initramfs.gz
+        chdir: /cluster
+
+#
+# Busybox Image
+#
+
+    - name: Create /cluster/busybox Directory
+      file: path=/cluster/busybox state=directory
+
+    - name: Copy /cluster/busybox/init Script
+      copy: src=files/cluster/busybox/init dest=/cluster/busybox/init mode=555
+
+    - name: Copy /cluster/busybox.sh Script
+      copy: src=files/cluster/busybox.sh dest=/cluster/busybox.sh mode=555
+
+    - name: Copy busybox into image
+      copy: src=/cluster/busybox.bin dest=/cluster/busybox/busybox
+
+    - name: Set busybox Permissions
+      file: path=/cluster/busybox/busybox mode=555
+
+    - name: Copy iPXE busybox.script
+      copy: src=files/tftpboot/busybox.script dest=/tftpboot/busybox.script
+
+    - name: Create busybox image - /cluster/busybox.sh
+      command: /cluster/busybox.sh
+      args:
+        creates: /tftpboot/busybox.gz
         chdir: /cluster
 
   handlers:
